@@ -23,7 +23,7 @@ byte blinkIndex = 0;    // Index variable used when showing the LED pattern to t
 unsigned long blinkModeMillis = 0;
 bool gameOver = false;    // Game goes to this mode if player presses wrong button or timeout triggers
 bool gameRunning = true;  // In this mode a game "round" is running
-unsigned int rounds = 0;   // Count how many games the player has played so far successfully
+unsigned int rounds = 0;  // Count how many games the player has played so far successfully
 
 // Timing settings
 unsigned int blinkDuration = 100;  // How long should the LEDs blink when showing the pattern?
@@ -37,9 +37,7 @@ void setup() {
   FastLED.addLeds<NEOPIXEL, LED_PIN>(leds, NUM_LEDS);
 
   // Set button debouncing times
-  for (byte i = 0; i < 3; i++) {
-    buttons[i].setDebounceTime(50);
-  }
+  for (byte i = 0; i < 3; i++) buttons[i].setDebounceTime(50);
 
   // Make sure all LEDs are off at the start
   turnAllOff();
@@ -47,7 +45,7 @@ void setup() {
 }
 
 void loop() {
-
+  // Create a new randomized pattern based on current length
   generatePattern(seqLength);
 
   printSequence();  // Debug printing
@@ -58,7 +56,6 @@ void loop() {
 
   // In this mode the game listens to player's input
   while (gameRunning) {
-
     // Execute function that processes the LED and button states
     // (required to make them work in non-blocking way)
     handleBlinking();
@@ -94,9 +91,7 @@ void loop() {
     }
 
     // Check if pattern is completed
-    if (seqIndex >= seqLength) {
-      gameRunning = false;
-    }
+    if (seqIndex >= seqLength) gameRunning = false;
 
     // Check if any button is pressed
     for (byte i = 0; i < 3; i++) {
@@ -129,17 +124,17 @@ void loop() {
     for (;;) handleBlinking();
   }
 
-  // Increase the number of games
+  // Increase the sequence length on every 2 rounds
+  if (rounds % 2 == 0) seqLength++;
   rounds++;
-  seqLength++;
+  //seqLength++;
+  seqIndex = 0;
 
   // TODO: Decrease the blinking time and blink wait time to make the game more diffucult
 
   // Wait before showing the next sequence
   previousTime = millis();
-  while (millis() - previousTime <= 2000) {
-    handleBlinking();
-  }
+  while (millis() - previousTime <= 2000) handleBlinking();
 }
 
 // Handles non-blocking LED blinking stuff
@@ -163,9 +158,7 @@ void blink(byte led, unsigned int blinkDuration, CRGB color) {
 }
 
 void turnAllOff() {
-  for (byte i = 0; i < NUM_LEDS; i++) {
-    leds[i] = CRGB::Black;
-  }
+  for (byte i = 0; i < NUM_LEDS; i++) leds[i] = CRGB::Black;
   FastLED.show();
 }
 
