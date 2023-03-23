@@ -10,19 +10,20 @@ CRGB leds[NUM_LEDS];
 unsigned long lastBlinkTimes[] = { 0, 0, 0 };
 int blinkTimes[] = { 0, 0, 0 };
 
-// Buttons
-const ezButton buttons[] = { 6, 7, 8 };
+const ezButton buttons[] = { 6, 7, 8 };  // Buttons
 
-// Storing the pattern sequences here
-byte sequence[SEQ_MAX_LEN] = { 0 };
+
+byte sequence[SEQ_MAX_LEN] = { 0 };  // Storing the pattern sequences here
 byte seqIndex = 0;
 byte seqLength = 1;  // Start with seqence with length of 1
 
 // Game state variables
 bool blinkMode = true;  // Blinking mode is the mode where the LEDs are blinking the sequence
-byte blinkIndex = 0;
+byte blinkIndex = 0;    // Index variable used when showing the LED pattern to the player
 unsigned long blinkModeMillis = 0;
-bool gameOver = false;
+bool gameOver = false;    // Game goes to this mode if player presses wrong button or timeout triggers
+bool gameRunning = true;  // In this mode a game "round" is running
+unsigned int rounds = 0;   // Count how many games the player has played so far successfully
 
 // Timing settings
 unsigned int blinkDuration = 100;  // How long should the LEDs blink when showing the pattern?
@@ -42,39 +43,44 @@ void setup() {
 
   // Make sure all LEDs are off at the start
   turnAllOff();
+  delay(2000);
 }
 
 void loop() {
 
-  generatePattern(3);
-  Serial.print("seq: ");
-  for (byte i = 0; i < 3; i++) {
-    Serial.print(sequence[i]);
-    Serial.print(" ");
-  }
-  Serial.println("");
-  while (!gameOver) {
+  generatePattern(seqLength);
+
+  printSequence();  // Debug printing
+
+  // We start the round with blinking mode on (show sequence to player)
+  gameRunning = true;
+  blinkMode = true;
+
+  // In this mode the game listens to player's input
+  while (gameRunning) {
 
     // Execute function that processes the LED and button states
     // (required to make them work in non-blocking way)
     handleBlinking();
     for (byte i = 0; i < 3; i++) buttons[i].loop();  // required by the ezButton library
 
-    // In this mode, the sequence is blinked with the LEDs
+    // If we are in the blinking phase, show the pattern to player with LEDs
     if (blinkMode) {
       if (blinkIndex >= seqLength) {  // Sequence finished
         blinkMode = false;            // Back to normal mode
         blinkModeMillis = 0;
-        previousTime = 0;  // Set timeout
+        previousTime = millis();  // Set timeout
         blinkIndex = 0;
         seqIndex = 0;
         continue;
       }
 
+      // Wait a bit before showing the next LED in the sequence
       unsigned long currentMillis = millis();
-
       if (currentMillis - blinkModeMillis >= blinkWait) {
         blinkModeMillis = currentMillis;
+
+        // Blink the LED and increase the blinking sequence index
         blink(sequence[blinkIndex], blinkDuration, CRGB::Yellow);
         blinkIndex++;
       }
@@ -84,19 +90,17 @@ void loop() {
     if (millis() - previousTime >= timeout) {
       Serial.println("timeout");
       gameOver = true;
+      gameRunning = false;
     }
 
     // Check if pattern is completed
     if (seqIndex >= seqLength) {
-      gameOver = true;
+      gameRunning = false;
     }
 
     // Check if any button is pressed
     for (byte i = 0; i < 3; i++) {
       if (buttons[i].isPressed()) {
-        Serial.print("Button ");
-        Serial.print(i);
-        Serial.println(" pressed");
 
         // Blink the LED in red color if pressed during the blink mode
         if (blinkMode) {
@@ -104,27 +108,38 @@ void loop() {
           break;
         }
 
-
+        // Check if correct button is pressed
         if (i == sequence[seqIndex]) {
+          // Yes, increase the sequence index and blink green LED
           seqIndex++;
           blink(i, 100, CRGB::Green);
-        } else {  // else the game is over
-          Serial.print("i=");
-          Serial.print(i);
-          Serial.print(" want=");
-          Serial.println(sequence[seqIndex]);
+        } else {
+          // No. Blink red LED and end the game
           blink(i, 100, CRGB::Red);
           gameOver = true;
+          gameRunning = false;
         }
       }
     }
   }
 
+  // Loop endlessly
+  if (gameOver) {
+    Serial.println("game over");
+    for (;;) handleBlinking();
+  }
 
-  Serial.println("game over");
-  //delay(1000);
-  //turnAllOff();
-  for (;;) handleBlinking();
+  // Increase the number of games
+  rounds++;
+  seqLength++;
+
+  // TODO: Decrease the blinking time and blink wait time to make the game more diffucult
+
+  // Wait before showing the next sequence
+  previousTime = millis();
+  while (millis() - previousTime <= 2000) {
+    handleBlinking();
+  }
 }
 
 // Handles non-blocking LED blinking stuff
@@ -154,6 +169,7 @@ void turnAllOff() {
   FastLED.show();
 }
 
+// Generate randomized pattern
 void generatePattern(byte length) {
   for (byte i = 0; i < length; i++) {
     sequence[i] = random(3);
@@ -164,4 +180,14 @@ void generatePattern(byte length) {
     }
   }
   seqLength = length;
+}
+
+// Used for debugging
+void printSequence() {
+  Serial.print("seq: ");
+  for (byte i = 0; i < seqLength; i++) {
+    Serial.print(sequence[i]);
+    Serial.print(" ");
+  }
+  Serial.println("");
 }
