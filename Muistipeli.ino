@@ -20,14 +20,15 @@ byte seqLength = 1;  // Start with seqence with length of 1
 
 // Game state variables
 bool blinkMode = true;  // Blinking mode is the mode where the LEDs are blinking the sequence
+byte blinkIndex = 0;
 unsigned long blinkModeMillis = 0;
 bool gameOver = false;
 
 // Timing settings
-unsigned int blinkDuration = 100; // How long should the LEDs blink when showing the pattern?
-unsigned int blinkWait = 300; // How long delay should there be before next LED in the sequence?
-const int timeout = 10000;       // when to stop the game if no buttons are pressed
-unsigned long previousTime = 0;  // store the previous timer, used to reset the timeout timer (don't touch this)
+unsigned int blinkDuration = 100;  // How long should the LEDs blink when showing the pattern?
+unsigned int blinkWait = 500;      // How long delay should there be before next LED in the sequence?
+const int timeout = 10000;         // when to stop the game if no buttons are pressed
+unsigned long previousTime = 0;    // store the previous timer, used to reset the timeout timer (don't touch this)
 
 
 void setup() {
@@ -45,7 +46,13 @@ void setup() {
 
 void loop() {
 
-  generatePattern(5);
+  generatePattern(3);
+  Serial.print("seq: ");
+  for (byte i = 0; i < 3; i++) {
+    Serial.print(sequence[i]);
+    Serial.print(" ");
+  }
+  Serial.println("");
   while (!gameOver) {
 
     // Execute function that processes the LED and button states
@@ -55,10 +62,12 @@ void loop() {
 
     // In this mode, the sequence is blinked with the LEDs
     if (blinkMode) {
-      if (seqIndex >= seqLength) {  // Sequence finished
-        blinkMode = false;          // Back to normal mode
+      if (blinkIndex >= seqLength) {  // Sequence finished
+        blinkMode = false;            // Back to normal mode
         blinkModeMillis = 0;
         previousTime = 0;  // Set timeout
+        blinkIndex = 0;
+        seqIndex = 0;
         continue;
       }
 
@@ -66,14 +75,19 @@ void loop() {
 
       if (currentMillis - blinkModeMillis >= blinkWait) {
         blinkModeMillis = currentMillis;
-        blink(sequence[seqIndex], blinkDuration, CRGB::Yellow);
-        seqIndex++;
+        blink(sequence[blinkIndex], blinkDuration, CRGB::Yellow);
+        blinkIndex++;
       }
     }
 
     // Check for timeout
     if (millis() - previousTime >= timeout) {
       Serial.println("timeout");
+      gameOver = true;
+    }
+
+    // Check if pattern is completed
+    if (seqIndex >= seqLength) {
       gameOver = true;
     }
 
@@ -84,25 +98,33 @@ void loop() {
         Serial.print(i);
         Serial.println(" pressed");
 
-        // Default color is green when pressing buttons
-        CRGB color = CRGB::Green;
-
-        // Change the color to red if we are in the blink mode
+        // Blink the LED in red color if pressed during the blink mode
         if (blinkMode) {
-          color = CRGB::Red;
+          blink(i, 100, CRGB::Red);
+          break;
         }
 
-        // Finally, blink the LED
-        blink(i, 100, color);
+
+        if (i == sequence[seqIndex]) {
+          seqIndex++;
+          blink(i, 100, CRGB::Green);
+        } else {  // else the game is over
+          Serial.print("i=");
+          Serial.print(i);
+          Serial.print(" want=");
+          Serial.println(sequence[seqIndex]);
+          blink(i, 100, CRGB::Red);
+          gameOver = true;
+        }
       }
     }
   }
 
 
   Serial.println("game over");
-  turnAllOff();
-  for (;;)
-    ;
+  //delay(1000);
+  //turnAllOff();
+  for (;;) handleBlinking();
 }
 
 // Handles non-blocking LED blinking stuff
