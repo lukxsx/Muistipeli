@@ -18,11 +18,17 @@ byte sequence[SEQ_MAX_LEN] = { 0 };
 byte seqIndex = 0;
 byte seqLength = 1;  // Start with seqence with length of 1
 
+// Game state variables
 bool blinkMode = true;  // Blinking mode is the mode where the LEDs are blinking the sequence
 unsigned long blinkModeMillis = 0;
 bool gameOver = false;
+
+// Timing settings
+unsigned int blinkDuration = 100; // How long should the LEDs blink when showing the pattern?
+unsigned int blinkWait = 300; // How long delay should there be before next LED in the sequence?
 const int timeout = 10000;       // when to stop the game if no buttons are pressed
-unsigned long previousTime = 0;  // store the previous timer, used to reset the timeout timer
+unsigned long previousTime = 0;  // store the previous timer, used to reset the timeout timer (don't touch this)
+
 
 void setup() {
   Serial.begin(9600);
@@ -56,13 +62,11 @@ void loop() {
         continue;
       }
 
-      const unsigned long interval = 500;
-
       unsigned long currentMillis = millis();
 
-      if (currentMillis - blinkModeMillis >= interval) {
+      if (currentMillis - blinkModeMillis >= blinkWait) {
         blinkModeMillis = currentMillis;
-        blink(sequence[seqIndex], 100, CRGB::Yellow);
+        blink(sequence[seqIndex], blinkDuration, CRGB::Yellow);
         seqIndex++;
       }
     }
