@@ -19,7 +19,8 @@ byte seqLength = 1;  // Start with seqence with length of 1
 
 // Game state variables
 bool blinkMode = true;  // Blinking mode is the mode where the LEDs are blinking the sequence
-byte blinkIndex = 0;    // Index variable used when showing the LED pattern to the player
+bool menuMode = true;
+byte blinkIndex = 0;  // Index variable used when showing the LED pattern to the player
 unsigned long blinkModeMillis = 0;
 bool gameOver = false;    // Game goes to this mode if player presses wrong button or timeout triggers
 bool gameRunning = true;  // In this mode a game "round" is running
@@ -57,6 +58,8 @@ void loop() {
   // We start the round with blinking mode on (show sequence to player)
   gameRunning = true;
   blinkMode = true;
+
+  if (menuMode) menu();
 
   // In this mode the game listens to player's input
   while (gameRunning) {
@@ -152,6 +155,30 @@ void loop() {
   while (millis() - previousTime <= 2000) handleBlinking();
 }
 
+void menu() {
+  leds[0] = CRGB::Green;
+  leds[1] = CRGB::Yellow;
+  leds[2] = CRGB::Red;
+  FastLED.show();
+  while (menuMode) {
+    for (byte i = 0; i < 3; i++) buttons[i].loop();  // required by the ezButton library
+    // Check if correct button is pressed
+
+    for (byte i = 0; i < 3; i++) {
+      if (buttons[i].isPressed()) {
+        turnAllOff();
+        setDifficulty(i);
+        menuMode = false;
+        while (buttons[i].isPressed()) buttons[i].loop();
+        delay(1000);
+        blinkModeMillis = millis();
+        previousTime = millis();
+        break;
+      }
+    }
+  }
+}
+
 // Handles non-blocking LED blinking stuff
 // Must be called all the time in order to work
 void handleBlinking() {
@@ -167,6 +194,9 @@ void handleBlinking() {
 
 // Make one of the LEDs blink
 void blink(byte led, unsigned int blinkDuration, CRGB color) {
+  Serial.print("blinking ");
+  Serial.print(led);
+  Serial.println("");
   leds[led] = color;
   lastBlinkTimes[led] = millis();
   blinkTimes[led] = blinkDuration;
@@ -179,6 +209,7 @@ void turnAllOff() {
 
 // Generate randomized pattern
 void generatePattern(byte length) {
+  randomSeed(analogRead(0));
   for (byte i = 0; i < length; i++) {
     sequence[i] = random(3);
     if (i > 0) {
@@ -198,4 +229,22 @@ void printSequence() {
     Serial.print(" ");
   }
   Serial.println("");
+}
+
+void setDifficulty(byte difficulty) {
+  Serial.print("Difficulty: ");
+  switch (difficulty) {
+    case 0:
+    Serial.println("easy");
+    blinkWaitDecrease = 10;
+    break;
+    case 1:
+    Serial.println("medium");
+    blinkWaitDecrease = 30;
+    break;
+    case 2:
+    Serial.println("hard");
+    blinkWaitDecrease = 60;
+    break;
+  }
 }
