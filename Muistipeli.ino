@@ -26,10 +26,14 @@ bool gameRunning = true;  // In this mode a game "round" is running
 unsigned int rounds = 0;  // Count how many games the player has played so far successfully
 
 // Timing settings
-unsigned int blinkDuration = 100;  // How long should the LEDs blink when showing the pattern?
-unsigned int blinkWait = 500;      // How long delay should there be before next LED in the sequence?
-const int timeout = 10000;         // when to stop the game if no buttons are pressed
-unsigned long previousTime = 0;    // store the previous timer, used to reset the timeout timer (don't touch this)
+unsigned int blinkDuration = 100;        // How long should the LEDs blink when showing the pattern?
+unsigned int blinkDurationDecrease = 2;  // How much blink duration will decrease on every round
+unsigned int minBlinkDuration = 50;      // Minimum amount for blink duration time, it cannot go under this
+unsigned int blinkWait = 500;            // How long delay should there be before next LED in the sequence?
+unsigned int blinkWaitDecrease = 30;     // Amount that the blink wait time decreases on every round
+unsigned int minBlinkWait = 50;          // Minimum amount for blink wait, it cannot go under this
+const int timeout = 10000;               // when to stop the game if no buttons are pressed
+unsigned long previousTime = 0;          // store the previous timer, used to reset the timeout timer (don't touch this)
 
 
 void setup() {
@@ -130,7 +134,18 @@ void loop() {
   //seqLength++;
   seqIndex = 0;
 
-  // TODO: Decrease the blinking time and blink wait time to make the game more diffucult
+  // Decrease the blinking time and blink wait time to make the game more diffucult
+  // Gredually reduce waitDecrease to reduce difficulty
+  if (rounds % 5 == 0 && blinkWaitDecrease > 5) {
+    blinkWaitDecrease -= 5;
+  }
+
+  if (blinkDuration >= minBlinkDuration) {
+    blinkDuration -= blinkDurationDecrease;
+  }
+  if (blinkWait >= minBlinkWait) {
+    blinkWait -= blinkWaitDecrease;
+  }
 
   // Wait before showing the next sequence
   previousTime = millis();
