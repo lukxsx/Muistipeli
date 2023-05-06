@@ -50,6 +50,7 @@ void setup() {
 }
 
 void loop() {
+beginning:
   // Create a new randomized pattern based on current length
   generatePattern(seqLength);
 
@@ -127,8 +128,21 @@ void loop() {
 
   // Loop endlessly
   if (gameOver) {
-    Serial.println("game over");
-    for (;;) handleBlinking();
+    Serial.println("Game over");
+    leds[0] = CRGB::Red;
+    leds[1] = CRGB::Red;
+    leds[2] = CRGB::Red;
+    FastLED.show();
+    delay(5000);
+    turnAllOff();
+    delay(1000);
+    menuMode = true;
+    gameOver = false;
+    resetGame();
+    for (byte i = 0; i < 3; i++) {
+      while (buttons[i].isPressed()) buttons[i].loop();
+    }
+    goto beginning;
   }
 
   // Increase the sequence length on every 2 rounds
@@ -235,16 +249,24 @@ void setDifficulty(byte difficulty) {
   Serial.print("Difficulty: ");
   switch (difficulty) {
     case 0:
-    Serial.println("easy");
-    blinkWaitDecrease = 10;
-    break;
+      Serial.println("easy");
+      blinkWaitDecrease = 10;
+      break;
     case 1:
-    Serial.println("medium");
-    blinkWaitDecrease = 30;
-    break;
+      Serial.println("medium");
+      blinkWaitDecrease = 30;
+      break;
     case 2:
-    Serial.println("hard");
-    blinkWaitDecrease = 60;
-    break;
+      Serial.println("hard");
+      blinkWaitDecrease = 60;
+      break;
   }
+}
+
+void resetGame() {
+  seqIndex = 0;
+  seqLength = 1;
+  rounds = 0;
+  blinkDuration = 100;
+  blinkWait = 500;
 }
