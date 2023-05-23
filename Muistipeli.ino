@@ -1,9 +1,13 @@
 #include <FastLED.h>
 #include <ezButton.h>
+#include <LiquidCrystal_I2C.h>
 
 #define SEQ_MAX_LEN 50
 #define LED_PIN 3
 #define NUM_LEDS 3
+
+// LCD
+LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 // RGB LED strip setup
 CRGB leds[NUM_LEDS];
@@ -41,6 +45,11 @@ void setup() {
   Serial.begin(9600);
   FastLED.addLeds<NEOPIXEL, LED_PIN>(leds, NUM_LEDS);
 
+  lcd.init();       //initialize the lcd
+  lcd.backlight();  //open the backlight
+  lcd.setCursor(0, 0);
+  lcd.print("Muistipeli");
+
   // Set button debouncing times
   for (byte i = 0; i < 3; i++) buttons[i].setDebounceTime(50);
 
@@ -64,6 +73,8 @@ beginning:
 
   // In this mode the game listens to player's input
   while (gameRunning) {
+
+
     // Execute function that processes the LED and button states
     // (required to make them work in non-blocking way)
     handleBlinking();
@@ -113,6 +124,11 @@ beginning:
 
         // Check if correct button is pressed
         if (i == sequence[seqIndex]) {
+          lcd.clear();
+          lcd.setCursor(0, 0);
+          lcd.print("Kierros: ");
+          lcd.setCursor(9, 0);
+          lcd.print(rounds + 2);
           // Yes, increase the sequence index and blink green LED
           seqIndex++;
           blink(i, 100, CRGB::Green);
@@ -126,8 +142,12 @@ beginning:
     }
   }
 
-  // Loop endlessly
   if (gameOver) {
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Peli ohi!");
+    lcd.setCursor(0, 1);
+    lcd.print("Game over!");
     Serial.println("Game over");
     leds[0] = CRGB::Red;
     leds[1] = CRGB::Red;
@@ -170,6 +190,11 @@ beginning:
 }
 
 void menu() {
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Valitse");
+  lcd.setCursor(0, 1);
+  lcd.print("vaikeusaste");
   leds[0] = CRGB::Green;
   leds[1] = CRGB::Yellow;
   leds[2] = CRGB::Red;
@@ -187,6 +212,12 @@ void menu() {
         delay(1000);
         blinkModeMillis = millis();
         previousTime = millis();
+        lcd.clear();
+        lcd.setCursor(0, 0);
+        lcd.print("Kierros: ");
+        lcd.setCursor(9, 0);
+        lcd.print(1);
+
         break;
       }
     }
@@ -250,14 +281,29 @@ void setDifficulty(byte difficulty) {
   switch (difficulty) {
     case 0:
       Serial.println("easy");
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("Valittu taso:");
+      lcd.setCursor(0, 1);
+      lcd.print("Helppo");
       blinkWaitDecrease = 10;
       break;
     case 1:
       Serial.println("medium");
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("Valittu taso:");
+      lcd.setCursor(0, 1);
+      lcd.print("Medium");
       blinkWaitDecrease = 30;
       break;
     case 2:
       Serial.println("hard");
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("Valittu taso:");
+      lcd.setCursor(0, 1);
+      lcd.print("Vaikea");
       blinkWaitDecrease = 60;
       break;
   }
