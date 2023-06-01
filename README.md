@@ -1,4 +1,5 @@
 # Arduino memory game
+This is the code for our group's course project for Aalto University's Sähköpaja course.
 
 Note! The libraries LiquidCrystal_I2C, ezButton and FastLED are required!
 
